@@ -1,0 +1,261 @@
+// Swift 3 way:
+    struct User {
+        var userId: Int
+        var id: Int
+        var title: String
+        var completed: Bool
+        
+        init(_ dictionary: [String: Any]) {
+            self.userId = dictionary["userId"] as? Int ?? 0
+            self.id = dictionary["id"] as? Int ?? 0
+            self.title = dictionary["title"] as? String ?? ""
+            self.completed = dictionary["completed"] as? Bool ?? false
+        }
+    }
+    
+class APIManager {
+    func getFromURL(){
+        guard let url = URL(string: "https://jsonplaceholder.typicode.com/todos") else {return}
+        let task = URLSession.shared.dataTask(with: url) { (data, response, error) in
+            guard let dataResponse = data, error == nil else {
+                    print(error?.localizedDescription ?? "Response Error")
+                    return
+            }
+            do{
+                //here dataResponse received from a network request
+                let jsonResponse = try JSONSerialization.jsonObject(with: dataResponse, options: [])
+//                print(jsonResponse) //Response result
+                
+                guard let jsonArray = jsonResponse as? [[String: Any]] else {
+                    return
+                }
+//                print(jsonArray)
+                //Now get title value
+//                guard let title = jsonArray[0]["title"] as? String else { return }
+//                print(title) // delectus aut autem
+                
+
+//                for dic in jsonArray {
+//                    guard let title = dic["title"] as? String else { return }
+//                    print(title) //Output
+//                }
+                
+                var model = [User]() //Initialising Model Array
+//                for dic in jsonArray{
+//                    model.append(User(dic)) // adding now value in Model array
+//                }
+//                print(model[4].id) // 5
+                
+//                //make more simple
+                model = jsonArray.flatMap{ return User($0)}
+//                //Output
+                print(model[4].id) // 5
+                
+            } catch let parsingError {
+                print("Error", parsingError)
+            }
+        }
+        task.resume()
+    }
+
+    func getFromFile(){
+        if let path = Bundle.main.path(forResource: "CV", ofType: "json") {
+            do {
+                let jsonData = try NSData(contentsOfFile: path, options: NSData.ReadingOptions.mappedIfSafe)
+                do {
+                    let jsonResult: NSDictionary = try JSONSerialization.jsonObject(with: jsonData as Data, options: JSONSerialization.ReadingOptions.mutableContainers) as! NSDictionary
+                    let summary: String = (jsonResult["Professional Summary"] as? String)!
+                    print(summary)
+
+                    let topicOfKnowledge: String = (jsonResult["Topic of Knowledge"] as? String)!
+                    print(topicOfKnowledge)
+
+                    if let experiences : [NSDictionary] = jsonResult["Experiences"] as? [NSDictionary] {
+                            for (_, element) in experiences.enumerated() {
+                                if let element = element as? NSDictionary {
+                                    let companyName = element.value(forKey: "Company Name") as! String
+                                    let role = element.value(forKey: "Role") as! String
+                                    let from = element.value(forKey: "From") as! String
+                                    let to = element.value(forKey: "To") as! String
+                                    let responsibilities = element.value(forKey: "Responsibilities") as! [String]
+
+                                    let achievements = element.value(forKey: "Achievements") as! String
+
+                                    print("Company name: \(companyName),  role: \(role), from: \(from), to: \(to), responsibilities \(responsibilities), achievements: \(achievements)")
+                                }
+                            }
+                    }
+                } catch let error as NSError {
+                    print("Error: \(error)")
+                }
+            } catch let error as NSError {
+                print("Error: \(error)")
+            }
+        }
+    }
+}
+
+
+//start*****Using swift 4: Codable
+
+    struct User: Codable {
+        var userId: Int
+        var id: Int
+        var title: String
+        var completed: Bool
+    }
+
+    func getFrURL(){
+        guard let url = URL(string: "https://jsonplaceholder.typicode.com/todos") else {return}
+        let task = URLSession.shared.dataTask(with: url) { (data, response, error) in
+            guard let dataResponse = data, error == nil else {
+                    print(error?.localizedDescription ?? "Response Error")
+                    return
+            }
+            
+            do {    //here dataResponse received from a network request
+                let decoder = JSONDecoder()
+                let models = try decoder.decode(Array<User>.self, from:dataResponse) //Decode JSON Response Data
+                print(models.first?.id) //Output - 1221
+            } catch let parsingError {
+                print("Error",parsingError)
+            }
+        }
+        task.resume()
+    }
+
+//finish*****Using swift 4: Codable
+
+
+    func makeGetCall() {
+        //https://www.mocky.io/v2/5185415ba171ea3a00704eed
+        
+        // Set up the URL request
+        let todoEndpoint: String = "https://www.mocky.io/v2/5d25299b2f0000a8ba241d48"
+        guard let url = URL(string: todoEndpoint) else {
+            print("Error: cannot create URL")
+            return
+        }
+        let urlRequest = URLRequest(url: url)
+        
+        // set up the session
+        let config = URLSessionConfiguration.default
+        let session = URLSession(configuration: config)
+        
+        // make the request
+        let task = session.dataTask(with: urlRequest) {
+            (data, response, error) in
+            // check for any errors
+            guard error == nil else {
+                print("error calling GET on /todos/1")
+                print(error!)
+                return
+            }
+            // make sure we got data
+            guard let responseData = data else {
+                print("Error: did not receive data")
+                return
+            }
+
+            // parse the result as JSON, since that's what the API provides
+            do {
+                guard let todo = try JSONSerialization.jsonObject(with: responseData, options: [])
+                    as? [String: Any] else {
+                        print("error trying to convert data to JSON")
+                        return
+                }
+                // now we have the todo
+                // let's just print it to prove we can access it
+                print("The todo is: " + todo.description)
+                
+                // the todo object is a dictionary
+                // so we just access the title using the "title" key
+                // so check for a title and print it if we have one
+                guard let todoTitle = todo["employee"] as? String else {
+                    print("Could not get todo title from JSON")
+                    return
+                }
+                print("The title is: " + todoTitle)
+            } catch  {
+                print("error trying to convert data to JSON")
+                return
+            }
+        }
+        task.resume()
+    }
+    
+    
+    
+    
+    func makePostCall() {
+        let todosEndpoint: String = "https://jsonplaceholder.typicode.com/todos"
+        guard let todosURL = URL(string: todosEndpoint) else {
+            print("Error: cannot create URL")
+            return
+        }
+        var todosUrlRequest = URLRequest(url: todosURL)
+        todosUrlRequest.httpMethod = "POST"
+        let newTodo: [String: Any] = ["title": "My First todo", "completed": false, "userId": 1]
+        let jsonTodo: Data
+        do {
+            jsonTodo = try JSONSerialization.data(withJSONObject: newTodo, options: [])
+            todosUrlRequest.httpBody = jsonTodo
+        } catch {
+            print("Error: cannot create JSON from todo")
+            return
+        }
+        
+        let session = URLSession.shared
+        
+        let task = session.dataTask(with: todosUrlRequest) {
+            (data, response, error) in
+            guard error == nil else {
+                print("error calling POST on /todos/1")
+                print(error!)
+                return
+            }
+            guard let responseData = data else {
+                print("Error: did not receive data")
+                return
+            }
+            
+            // parse the result as JSON, since that's what the API provides
+            do {
+                guard let receivedTodo = try JSONSerialization.jsonObject(with: responseData,
+                                                                          options: []) as? [String: Any] else {
+                                                                            print("Could not get JSON from responseData as dictionary")
+                                                                            return
+                }
+                print("The todo is: " + receivedTodo.description)
+                
+                guard let todoID = receivedTodo["id"] as? Int else {
+                    print("Could not get todoID as int from JSON")
+                    return
+                }
+                print("The ID is: \(todoID)")
+            } catch  {
+                print("error parsing response from POST on /todos")
+                return
+            }
+        }
+        task.resume()
+    }
+    
+    
+    func makeDeleteCall() {
+        let firstTodoEndpoint: String = "https://jsonplaceholder.typicode.com/todos/1"
+        var firstTodoUrlRequest = URLRequest(url: URL(string: firstTodoEndpoint)!)
+        firstTodoUrlRequest.httpMethod = "DELETE"
+        
+        let session = URLSession.shared
+        
+        let task = session.dataTask(with: firstTodoUrlRequest) {
+            (data, response, error) in
+            guard let _ = data else {
+                print("error calling DELETE on /todos/1")
+                return
+            }
+            print("DELETE ok")
+        }
+        task.resume()
+    }
